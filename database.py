@@ -4,6 +4,8 @@
 з багатопотоковим Flask-сервером.
 """
 
+# review: 2026-06-08
+
 import sqlite3
 import threading
 from datetime import datetime
