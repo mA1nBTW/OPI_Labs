@@ -11,7 +11,7 @@
 import sys
 import os
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 # Додаємо кореневу директорію проєкту в sys.path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -137,7 +137,7 @@ class TestCalculatePlantHealth:
     def test_healthy_plant_thriving(self):
         """EP-позитивний: growth=8, полита сьогодні → thriving, health≥80."""
         # Arrange
-        now = datetime(2025, 6, 1, 12, 0, 0)
+        now = datetime(2025, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
         last_watering = now.isoformat()
         growth_level = 8
         frequency = 7
@@ -185,8 +185,8 @@ class TestCalculatePlantHealth:
     def test_overdue_plant_should_wither(self):
         """EP-позитивний: 10 днів прострочення → should_wither=True."""
         # Arrange
-        now = datetime(2025, 6, 20, 12, 0, 0)
-        last_watering = datetime(2025, 6, 1, 12, 0, 0).isoformat()  # 19 днів
+        now = datetime(2025, 6, 20, 12, 0, 0, tzinfo=timezone.utc)
+        last_watering = datetime(2025, 6, 1, 12, 0, 0, tzinfo=timezone.utc).isoformat()  # 19 днів
         growth_level = 5
         frequency = 7  # overdue = 19 - 7 = 12 днів
 
@@ -206,7 +206,7 @@ class TestCalculatePlantHealth:
     def test_zero_growth_level(self):
         """BVA: growth_level = 0 (мінімальна межа) → withered."""
         # Arrange
-        now = datetime(2025, 6, 1, 12, 0, 0)
+        now = datetime(2025, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
         last_watering = now.isoformat()
         growth_level = 0
         frequency = 7
@@ -224,8 +224,8 @@ class TestCalculatePlantHealth:
     def test_boundary_healthy_thriving(self):
         """BVA: growth_level=10, 2 дні overdue → health=100-30=70, healthy."""
         # Arrange
-        now = datetime(2025, 6, 10, 12, 0, 0)
-        last_watering = datetime(2025, 6, 1, 12, 0, 0).isoformat()  # 9 днів
+        now = datetime(2025, 6, 10, 12, 0, 0, tzinfo=timezone.utc)
+        last_watering = datetime(2025, 6, 1, 12, 0, 0, tzinfo=timezone.utc).isoformat()  # 9 днів
         growth_level = 10
         frequency = 7  # overdue = 9 - 7 = 2
 
@@ -263,11 +263,11 @@ class TestProcessGardenReminders:
     def test_overdue_contact_generates_reminder(self):
         """EP-позитивний: контакт прострочений → 1 нагадування."""
         # Arrange
-        now = datetime(2025, 6, 15, 12, 0, 0)
+        now = datetime(2025, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
         contacts = [
             self._make_contact(
                 "Мама", 7,
-                datetime(2025, 6, 1, 12, 0, 0).isoformat(),
+                datetime(2025, 6, 1, 12, 0, 0, tzinfo=timezone.utc).isoformat(),
             ),
         ]
 
@@ -283,11 +283,11 @@ class TestProcessGardenReminders:
     def test_no_overdue_returns_empty(self):
         """EP-позитивний: взаємодія була вчора, freq=7 → порожній список."""
         # Arrange
-        now = datetime(2025, 6, 15, 12, 0, 0)
+        now = datetime(2025, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
         contacts = [
             self._make_contact(
                 "Тато", 7,
-                datetime(2025, 6, 14, 12, 0, 0).isoformat(),
+                datetime(2025, 6, 14, 12, 0, 0, tzinfo=timezone.utc).isoformat(),
             ),
         ]
 
@@ -321,16 +321,16 @@ class TestProcessGardenReminders:
     def test_reminders_sorted_by_urgency(self):
         """EP-позитивний: два прострочені контакти → сортовано desc."""
         # Arrange
-        now = datetime(2025, 6, 30, 12, 0, 0)
+        now = datetime(2025, 6, 30, 12, 0, 0, tzinfo=timezone.utc)
         contacts = [
             self._make_contact(
                 "Друг", 7,
-                datetime(2025, 6, 20, 12, 0, 0).isoformat(),  # overdue=3
+                datetime(2025, 6, 20, 12, 0, 0, tzinfo=timezone.utc).isoformat(),  # overdue=3
                 cid="c1",
             ),
             self._make_contact(
                 "Сестра", 3,
-                datetime(2025, 6, 10, 12, 0, 0).isoformat(),  # overdue=17
+                datetime(2025, 6, 10, 12, 0, 0, tzinfo=timezone.utc).isoformat(),  # overdue=17
                 cid="c2",
             ),
         ]
@@ -347,7 +347,7 @@ class TestProcessGardenReminders:
     def test_invalid_date_skipped(self):
         """EP-позитивний: контакт з bad ISO → пропускається без помилки."""
         # Arrange
-        now = datetime(2025, 6, 15, 12, 0, 0)
+        now = datetime(2025, 6, 15, 12, 0, 0, tzinfo=timezone.utc)
         contacts = [
             self._make_contact("Хтось", 7, "bad-date"),
         ]
