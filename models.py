@@ -12,14 +12,12 @@ class UserModel:
         self.email: str = email
         self.password_hash: str = password_hash
 
-    # OPT-4
-    def verify_account(self) -> bool:
+    def is_credentials_present(self) -> bool:
         return bool(self.email and self.password_hash)
 
     def to_dict(self) -> dict:
         return {"user_id": self.user_id, "email": self.email}
 
-#Contact
 class Contact:
     """Контакт користувача (FR-02)."""
 
@@ -35,7 +33,6 @@ class Contact:
             "reminder_frequency_days": self.reminder_frequency_days,
         }
 
-#Virtual Plant
 class VirtualPlant:
     """Віртуальна рослина, що відповідає контакту (FR-03)."""
 
