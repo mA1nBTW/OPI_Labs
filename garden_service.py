@@ -8,7 +8,7 @@ Garden Service — модуль бізнес-логіки застосунку G
   3. process_garden_reminders     — обробка нагадувань для всього саду
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime
 from models import Contact
 
 
