@@ -24,8 +24,8 @@ class NotificationManager:
             return None  # не більше 1 push за 24 год (FR-04)
 
         self._last_sent[contact_id] = now
-        message = f"🌱 Не забудь зв'язатися з {contact_name}!"
-        print(f"[FCM STUB] → {message}")
+        message = f"[Garden] Ne zabudj zv'jazatysja z {contact_name}!"
+        print(f"[FCM STUB] -> {message}")
         return message
 
     def check_if_reminder_needed(

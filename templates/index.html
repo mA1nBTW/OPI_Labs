@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Garden — мобільний застосунок для підтримки соціальних зв'язків з рідними та близькими">
+  <meta name="theme-color" content="#0d1f14">
+  <title>Garden 🌱 — Ваш сад стосунків</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <!-- ═══ Particles (decorative background) ═══ -->
+  <div class="garden-particles" id="garden-particles"></div>
+
+  <!-- ═══ Toast container ═══ -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       AUTH PAGE
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div id="auth-page" class="auth-page">
+    <div class="auth-hero">
+      <div class="auth-hero__icon">🌱</div>
+      <h1 class="auth-hero__title">Garden</h1>
+      <p id="auth-subtitle" class="auth-hero__subtitle">Увійдіть, щоб доглядати свій сад</p>
+    </div>
+
+    <div class="auth-card card">
+      <h2 id="auth-title" class="section-title" style="justify-content:center; font-size:1.3rem">
+        Ласкаво просимо!
+      </h2>
+
+      <form id="auth-form" data-mode="login" autocomplete="on">
+        <div class="form-group">
+          <label class="form-label" for="auth-email">Електронна пошта</label>
+          <input class="form-input" type="email" id="auth-email"
+                 placeholder="your@email.com" required autocomplete="email">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="auth-password">Пароль</label>
+          <input class="form-input" type="password" id="auth-password"
+                 placeholder="••••••••" required autocomplete="current-password"
+                 minlength="4">
+        </div>
+
+        <div id="auth-error" class="form-error"></div>
+
+        <button type="submit" id="auth-submit" class="btn btn--primary btn--full">
+          Увійти
+        </button>
+      </form>
+
+      <p class="auth-switch">
+        <span id="auth-switch-text">Немає акаунту? </span>
+        <a href="#" id="auth-switch-link">Зареєструватися</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       MAIN APP SHELL
+       ═══════════════════════════════════════════════════════════════════ -->
+  <div id="app-main" class="app-shell hidden">
+
+    <!-- ── Top Bar ── -->
+    <header class="top-bar">
+      <div class="top-bar__logo">
+        <span class="emoji">🌱</span>
+        Garden
+      </div>
+      <div class="top-bar__user">
+        <span id="user-email" class="text-muted" style="font-size:0.78rem; max-width:120px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap"></span>
+        <button class="top-bar__avatar" id="user-avatar" title="Профіль">U</button>
+        <button class="btn btn--ghost btn--sm" id="btn-logout" title="Вийти" style="font-size:0.8rem">🚪</button>
+      </div>
+    </header>
+
+    <!-- ── Garden View ── -->
+    <section id="view-garden" class="view-section page-content">
+      <h1 class="section-title"><span class="emoji">🏡</span> Мій сад</h1>
+      <p class="section-subtitle">Натисніть на рослину, щоб побачити деталі</p>
+
+      <div class="stats-row">
+        <div class="stat-chip">
+          <div class="stat-chip__value" id="stat-total">0</div>
+          <div class="stat-chip__label">Рослин</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-chip__value" id="stat-thriving">0</div>
+          <div class="stat-chip__label">Квітучих</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-chip__value" id="stat-wilting">0</div>
+          <div class="stat-chip__label">В'януть</div>
+        </div>
+      </div>
+
+      <div class="garden-grid" id="garden-grid"></div>
+    </section>
+
+    <!-- ── Contacts View ── -->
+    <section id="view-contacts" class="view-section page-content hidden">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:var(--space-lg)">
+        <h1 class="section-title" style="margin-bottom:0"><span class="emoji">👥</span> Контакти</h1>
+        <button class="btn btn--primary btn--sm" onclick="showAddContactModal()">
+          ➕ Додати
+        </button>
+      </div>
+
+      <div class="contact-list" id="contacts-list"></div>
+    </section>
+
+    <!-- ── Chat View ── -->
+    <section id="view-chat" class="view-section page-content hidden">
+      <h1 class="section-title"><span class="emoji">💬</span> Чат</h1>
+      <p class="section-subtitle">Оберіть контакт для листування</p>
+      <div class="contact-list" id="chat-contacts-list"></div>
+    </section>
+
+    <!-- ── Reminders View ── -->
+    <section id="view-reminders" class="view-section page-content hidden">
+      <h1 class="section-title"><span class="emoji">🔔</span> Нагадування</h1>
+      <p class="section-subtitle">Контакти, з якими давно не спілкувалися</p>
+
+      <div id="reminders-list"></div>
+    </section>
+
+    <!-- ── Bottom Navigation ── -->
+    <nav class="bottom-nav">
+      <button class="bottom-nav__item active" data-view="garden" id="nav-garden">
+        <span class="nav-icon">🏡</span>
+        Сад
+      </button>
+      <button class="bottom-nav__item" data-view="contacts" id="nav-contacts">
+        <span class="nav-icon">👥</span>
+        Контакти
+      </button>
+      <button class="bottom-nav__item" data-view="chat" id="nav-chat">
+        <span class="nav-icon">💬</span>
+        Чат
+      </button>
+      <button class="bottom-nav__item" data-view="reminders" id="nav-reminders">
+        <span class="nav-icon">🔔</span>
+        Нагадування
+      </button>
+    </nav>
+  </div>
+
+  <!-- ═══ Modal Overlay ═══ -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-sheet" id="modal-sheet"></div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

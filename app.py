@@ -7,7 +7,7 @@
 import hashlib
 import os
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 
 from models import UserModel, Contact, VirtualPlant
 from database import LocalDatabase
@@ -16,6 +16,12 @@ from notifications import NotificationManager
 app = Flask(__name__)
 db = LocalDatabase()
 notifier = NotificationManager()
+
+
+# ── Головна сторінка (Frontend) ──────────────────────────────────────
+@app.route("/")
+def index():
+    return render_template("index.html")
 
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -69,6 +75,13 @@ def add_contact():
 @app.route("/contacts/<user_id>", methods=["GET"])
 def list_contacts(user_id: str):
     return jsonify(db.get_contacts(user_id))
+
+
+@app.route("/contacts/<contact_id>", methods=["PUT"])
+def edit_contact(contact_id: str):
+    data = request.json
+    db.update_contact(contact_id, data["name"], data["reminder_frequency_days"])
+    return jsonify(ok=True)
 
 
 @app.route("/contacts/<contact_id>", methods=["DELETE"])
@@ -140,7 +153,7 @@ def check_reminders(user_id: str):
         ):
             msg = notifier.schedule_push(c["contact_id"], c["name"])
             if msg:
-                sent.append({"contact": c["name"], "message": msg})
+                sent.append({"contact": c["name"], "contact_id": c["contact_id"], "message": msg})
 
     return jsonify(reminders_sent=sent)
 
@@ -149,6 +162,34 @@ def check_reminders(user_id: str):
 @app.route("/interactions/<contact_id>", methods=["GET"])
 def interaction_history(contact_id: str):
     return jsonify(db.get_interactions(contact_id))
+
+
+# ── FR-08  Чат / повідомлення ────────────────────────────────────────────
+@app.route("/messages/<contact_id>", methods=["GET"])
+def get_messages(contact_id: str):
+    return jsonify(db.get_messages(contact_id))
+
+
+@app.route("/messages", methods=["POST"])
+def send_message():
+    data = request.json
+    contact_id = data["contact_id"]
+    content = data["content"]
+    sender = data.get("sender", "user")
+
+    msg = db.insert_message(contact_id, sender, content)
+
+    # Кожне повідомлення також рахується як взаємодія (рослина росте)
+    db.add_interaction(contact_id)
+    plant_row = db.get_plant(contact_id)
+    if plant_row:
+        plant = VirtualPlant(contact_id)
+        plant.plant_id = plant_row["plant_id"]
+        plant.growth_level = plant_row["growth_level"]
+        plant.animate_growth()
+        db.update_plant_state(plant)
+
+    return jsonify(msg), 201
 
 
 # ─────────────────────────────────────────────────────────────────────────
