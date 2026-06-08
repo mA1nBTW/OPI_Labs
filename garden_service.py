@@ -9,23 +9,29 @@ Garden Service — модуль бізнес-логіки застосунку G
   3. process_garden_reminders     — обробка нагадувань для всього саду
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from models import Contact
 
 
 class GardenService:
     """Сервіс бізнес-логіки для віртуального саду."""
 
-    # ── Константи статусів рослини ───────────────────────────────────────
-    HEALTH_THRIVING = "thriving"    # квітуча      (≥ 80 %)
-    HEALTH_HEALTHY  = "healthy"     # здорова      (50–79 %)
-    HEALTH_WILTING  = "wilting"     # в'яне        (1–49 %)
-    HEALTH_WITHERED = "withered"    # зів'яла      (0 %)
-
     # ── Обмеження для валідації контакту ─────────────────────────────────
     MIN_FREQUENCY   = 1
     MAX_FREQUENCY   = 365
     MAX_NAME_LENGTH = 100
+
+    # ── Константи розрахунку здоров'я рослини ────────────────────────────
+    HEALTH_MULTIPLIER   = 10   # множник рівня росту → відсоток здоров'я
+    MAX_HEALTH_PCT      = 100  # максимальний відсоток здоров'я
+    PENALTY_PER_DAY     = 15   # штраф за кожен день прострочення
+    THRIVING_THRESHOLD  = 80   # поріг статусу "thriving"
+    HEALTHY_THRESHOLD   = 50   # поріг статусу "healthy"
+
+    HEALTH_THRIVING     = "thriving"
+    HEALTH_HEALTHY      = "healthy"
+    HEALTH_WILTING      = "wilting"
+    HEALTH_WITHERED     = "withered"
 
     # =====================================================================
     # Метод 1 — validate_and_create_contact
@@ -90,7 +96,7 @@ class GardenService:
     @staticmethod
     def calculate_plant_health(
         growth_level: int,
-        last_watering_iso: str,
+        last_watering: str | datetime,
         reminder_frequency_days: int,
         now: datetime | None = None,
     ) -> dict:
@@ -119,29 +125,38 @@ class GardenService:
             raise ValueError("Рівень росту не може бути від'ємним")
 
         if now is None:
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
 
         # --- Парсинг дати з обробкою виключень ---
-        try:
-            last_watering = datetime.fromisoformat(last_watering_iso)
-        except (ValueError, TypeError) as exc:
-            raise ValueError(
-                f"Некоректний формат дати: {last_watering_iso}"
-            ) from exc
+        if isinstance(last_watering, datetime):
+            parsed_watering = last_watering
+        elif isinstance(last_watering, str):
+            try:
+                parsed_watering = datetime.fromisoformat(last_watering)
+            except (ValueError, TypeError) as exc:
+                raise ValueError(
+                    f"Некоректний формат дати: {last_watering}"
+                ) from exc
+        else:
+            raise TypeError("last_watering має бути str або datetime")
+            
+        if parsed_watering.tzinfo is None:
+            parsed_watering = parsed_watering.replace(tzinfo=timezone.utc)
+            
+        last_watering = parsed_watering
 
         # --- Розрахунок днів прострочення ---
         days_since = (now - last_watering).days
         days_overdue = max(0, days_since - reminder_frequency_days)
 
-        # --- Розрахунок здоров'я ---
-        base_health = min(growth_level * 10, 100)
-        penalty = days_overdue * 15
+        base_health = min(growth_level * GardenService.HEALTH_MULTIPLIER,
+                  GardenService.MAX_HEALTH_PCT)
+        penalty = days_overdue * GardenService.PENALTY_PER_DAY
         health_pct = max(0, base_health - penalty)
 
-        # --- Визначення статусу (умовні конструкції) ---
-        if health_pct >= 80:
+        if health_pct >= GardenService.THRIVING_THRESHOLD:
             status = GardenService.HEALTH_THRIVING
-        elif health_pct >= 50:
+        elif health_pct >= GardenService.HEALTHY_THRESHOLD:
             status = GardenService.HEALTH_HEALTHY
         elif health_pct > 0:
             status = GardenService.HEALTH_WILTING
@@ -193,7 +208,7 @@ class GardenService:
             raise TypeError("Очікується список контактів")
 
         if now is None:
-            now = datetime.now()
+            now = datetime.now(timezone.utc)
 
         required_keys = {
             "contact_id", "name",
@@ -216,11 +231,16 @@ class GardenService:
             # --- Парсинг дати (пропускаємо некоректні) ---
             try:
                 last_dt = datetime.fromisoformat(entry["last_interaction_iso"])
+                if last_dt.tzinfo is None:
+                    last_dt = last_dt.replace(tzinfo=timezone.utc)
             except (ValueError, TypeError):
                 continue
 
             days_since = (now - last_dt).days
             freq = entry["reminder_frequency_days"]
+            
+            if not isinstance(freq, int) or isinstance(freq, bool):
+                raise TypeError(f"Елемент #{idx}: reminder_frequency_days має бути цілим числом")
 
             # --- Умова: чи потрібно нагадування ---
             if days_since >= freq:
