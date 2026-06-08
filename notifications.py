@@ -4,7 +4,7 @@
 У реальному додатку тут буде виклик Firebase Admin SDK.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 class NotificationManager:
     """Перевірка та планування push-нагадувань (≤ 1 на добу на контакт)."""
