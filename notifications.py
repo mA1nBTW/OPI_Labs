@@ -6,7 +6,7 @@
 
 from datetime import datetime, timedelta
 
-
+#Notifications Manager
 class NotificationManager:
     """Перевірка та планування push-нагадувань (≤ 1 на добу на контакт)."""
 

@@ -19,7 +19,7 @@ class UserModel:
     def to_dict(self) -> dict:
         return {"user_id": self.user_id, "email": self.email}
 
-
+#Contact
 class Contact:
     """Контакт користувача (FR-02)."""
 
@@ -35,7 +35,7 @@ class Contact:
             "reminder_frequency_days": self.reminder_frequency_days,
         }
 
-
+#Virtual Plant
 class VirtualPlant:
     """Віртуальна рослина, що відповідає контакту (FR-03)."""
 
