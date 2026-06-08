@@ -3,6 +3,7 @@
 Реалізує REST API для всіх функціональних вимог (FR-01…FR-05).
 Запуск:  python app.py
 """
+# code review
 
 import hashlib
 import os
