@@ -11,7 +11,7 @@
 import sys
 import os
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime
 
 # Додаємо кореневу директорію проєкту в sys.path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))

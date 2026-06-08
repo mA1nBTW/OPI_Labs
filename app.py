@@ -4,10 +4,11 @@
 Запуск:  python app.py
 """
 
-import hashlib
 import os
 
 from flask import Flask, request, jsonify, render_template
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 from models import UserModel, Contact, VirtualPlant
 from database import LocalDatabase
@@ -27,21 +28,21 @@ UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
-# ── Утіліти ──────────────────────────────────────────────────────────────
-def _hash(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
-
-
 # ── FR-01  Реєстрація / Авторизація (OPT-3, OPT-4) ─────────────────────
 @app.route("/register", methods=["POST"])
 def register():
     data = request.json
-    email, password = data["email"], data["password"]
+    if not data or not data.get("email") or not data.get("password"):
+        return jsonify(error="Email and password are required"), 400
+
+    email = data.get("email")
+    password = data.get("password")
 
     if db.get_user_by_email(email):
         return jsonify(error="Email already registered"), 409
 
-    user = UserModel(email, _hash(password))
+    hashed_pw = generate_password_hash(password)
+    user = UserModel(email, hashed_pw)
     if not user.verify_account():
         return jsonify(error="Invalid data"), 400
 
@@ -52,8 +53,14 @@ def register():
 @app.route("/login", methods=["POST"])
 def login():
     data = request.json
-    user = db.get_user_by_email(data["email"])
-    if not user or user["password_hash"] != _hash(data["password"]):
+    if not data or not data.get("email") or not data.get("password"):
+        return jsonify(error="Email and password are required"), 400
+
+    email = data.get("email")
+    password = data.get("password")
+
+    user = db.get_user_by_email(email)
+    if not user or not check_password_hash(user["password_hash"], password):
         return jsonify(error="Invalid credentials"), 401
     return jsonify(user_id=user["user_id"], email=user["email"])
 
@@ -62,8 +69,15 @@ def login():
 @app.route("/contacts", methods=["POST"])
 def add_contact():
     data = request.json
-    contact = Contact(data["name"], data.get("reminder_frequency_days", 7))
-    db.insert_contact(data["user_id"], contact)
+    if not data or not data.get("user_id") or not data.get("name"):
+        return jsonify(error="user_id and name are required"), 400
+
+    user_id = data.get("user_id")
+    name = data.get("name")
+    reminder_frequency_days = data.get("reminder_frequency_days", 7)
+
+    contact = Contact(name, reminder_frequency_days)
+    db.insert_contact(user_id, contact)
 
     # Автоматично створюємо рослину для контакту
     plant = VirtualPlant(contact.contact_id)
@@ -80,7 +94,13 @@ def list_contacts(user_id: str):
 @app.route("/contacts/<contact_id>", methods=["PUT"])
 def edit_contact(contact_id: str):
     data = request.json
-    db.update_contact(contact_id, data["name"], data["reminder_frequency_days"])
+    if not data or not data.get("name") or data.get("reminder_frequency_days") is None:
+        return jsonify(error="name and reminder_frequency_days are required"), 400
+
+    name = data.get("name")
+    reminder_frequency_days = data.get("reminder_frequency_days")
+
+    db.update_contact(contact_id, name, reminder_frequency_days)
     return jsonify(ok=True)
 
 
@@ -113,13 +133,17 @@ def send_media():
     2. Зберігаємо взаємодію
     3. Збільшуємо рослину (OPT-13)
     """
+    if "contact_id" not in request.form:
+        return jsonify(error="contact_id is required"), 400
+
     contact_id = request.form["contact_id"]
 
     # 1 — зберігаємо файл
     file = request.files.get("photo")
     media_path = None
     if file:
-        media_path = os.path.join(UPLOAD_DIR, f"{contact_id}_{file.filename}")
+        filename = secure_filename(file.filename)
+        media_path = os.path.join(UPLOAD_DIR, f"{contact_id}_{filename}")
         file.save(media_path)
 
     # 2 — updateInteractionHistory
@@ -173,8 +197,11 @@ def get_messages(contact_id: str):
 @app.route("/messages", methods=["POST"])
 def send_message():
     data = request.json
-    contact_id = data["contact_id"]
-    content = data["content"]
+    if not data or not data.get("contact_id") or not data.get("content"):
+        return jsonify(error="contact_id and content are required"), 400
+
+    contact_id = data.get("contact_id")
+    content = data.get("content")
     sender = data.get("sender", "user")
 
     msg = db.insert_message(contact_id, sender, content)
@@ -194,4 +221,6 @@ def send_message():
 
 # ─────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    debug = os.getenv("FLASK_DEBUG", "False").lower() in ("true", "1")
+    port = int(os.getenv("PORT", 5000))
+    app.run(debug=debug, port=port)

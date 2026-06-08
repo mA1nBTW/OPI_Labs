@@ -6,7 +6,6 @@
 
 from datetime import datetime, timedelta
 
-
 class NotificationManager:
     """Перевірка та планування push-нагадувань (≤ 1 на добу на контакт)."""
 
@@ -14,13 +13,16 @@ class NotificationManager:
         # contact_id → datetime останнього push
         self._last_sent: dict[str, datetime] = {}
 
-    # OPT-7
-    def schedule_push(self, contact_id: str, contact_name: str) -> str | None:
-        """Повертає текст нагадування або None, якщо ліміт вичерпано."""
-        now = datetime.now()
-        last = self._last_sent.get(contact_id)
+    def _is_rate_limited(self, contact_id: str, current_time: datetime) -> bool:
+        """Перевіряє, чи не перевищено ліміт відправки (1 повідомлення на добу)."""
+        last_sent_time = self._last_sent.get(contact_id)
+        return bool(last_sent_time and (current_time - last_sent_time) < timedelta(days=1))
 
-        if last and (now - last) < timedelta(days=1):
+    def send_push(self, contact_id: str, contact_name: str) -> str | None:
+        """Формує та відправляє нагадування, якщо не перевищено ліміт."""
+        now = datetime.now()
+
+        if self._is_rate_limited(contact_id, now):
             return None  # не більше 1 push за 24 год (FR-04)
 
         self._last_sent[contact_id] = now
@@ -29,7 +31,7 @@ class NotificationManager:
         return message
 
     def check_if_reminder_needed(
-        self, contact_id: str, last_interaction_iso: str, frequency_days: int
+        self, last_interaction_iso: str, frequency_days: int
     ) -> bool:
         last_dt = datetime.fromisoformat(last_interaction_iso)
         return (datetime.now() - last_dt) >= timedelta(days=frequency_days)
