@@ -18,6 +18,44 @@ db = LocalDatabase()
 notifier = NotificationManager()
 
 
+# ── Глобальні обробники помилок (завжди JSON, ніколи HTML) ────────────
+@app.errorhandler(400)
+def bad_request(e):
+    return jsonify(error="Bad request"), 400
+
+
+@app.errorhandler(404)
+def not_found(e):
+    return jsonify(error="Not found"), 404
+
+
+@app.errorhandler(405)
+def method_not_allowed(e):
+    return jsonify(error="Method not allowed"), 405
+
+
+@app.errorhandler(500)
+def server_error(e):
+    return jsonify(error="Internal server error"), 500
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Ловить всі необроблені виключення і повертає JSON."""
+    return jsonify(error=str(e)), 500
+
+
+# ── Health check (для хмарної платформи) ─────────────────────────────
+@app.route("/health")
+def health():
+    """Health-check endpoint для верифікації працездатності."""
+    return jsonify(
+        status="ok",
+        service="garden-api",
+        version="1.0.0",
+    )
+
+
 # ── Головна сторінка (Frontend) ──────────────────────────────────────
 @app.route("/")
 def index():
@@ -62,8 +100,16 @@ def login():
 @app.route("/contacts", methods=["POST"])
 def add_contact():
     data = request.json
+    user_id = data.get("user_id")
+
+    # Перевіряємо чи існує користувач (БД може бути скинута після перезапуску)
+    if not user_id or not db.conn.execute(
+        "SELECT 1 FROM users WHERE user_id = ?", (user_id,)
+    ).fetchone():
+        return jsonify(error="User not found. Please re-login."), 401
+
     contact = Contact(data["name"], data.get("reminder_frequency_days", 7))
-    db.insert_contact(data["user_id"], contact)
+    db.insert_contact(user_id, contact)
 
     # Автоматично створюємо рослину для контакту
     plant = VirtualPlant(contact.contact_id)
@@ -194,4 +240,5 @@ def send_message():
 
 # ─────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host="0.0.0.0", port=port)

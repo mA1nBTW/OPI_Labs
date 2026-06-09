@@ -26,7 +26,18 @@ async function api(url, opts = {}) {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
     ...opts,
   });
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error('Сервер повернув некоректну відповідь');
+  }
+  if (res.status === 401 && url !== '/login' && url !== '/register') {
+    // Сесія застаріла (БД скинулась після перезапуску) — перелогін
+    logout();
+    showToast('Сесія закінчилась. Увійдіть знову.', 'error');
+    throw new Error('Session expired');
+  }
   if (!res.ok) throw new Error(data.error || 'Щось пішло не так');
   return data;
 }

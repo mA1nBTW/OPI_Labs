@@ -1,3 +1,12 @@
+---
+title: Garden
+emoji: 🌱
+colorFrom: green
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # Garden 🌱
 
 Мобільний застосунок для підтримки особистих стосунків з рідними та близькими.
