@@ -18,6 +18,17 @@ db = LocalDatabase()
 notifier = NotificationManager()
 
 
+# ── Health check (для хмарної платформи) ─────────────────────────────
+@app.route("/health")
+def health():
+    """Health-check endpoint для верифікації працездатності."""
+    return jsonify(
+        status="ok",
+        service="garden-api",
+        version="1.0.0",
+    )
+
+
 # ── Головна сторінка (Frontend) ──────────────────────────────────────
 @app.route("/")
 def index():
@@ -194,4 +205,5 @@ def send_message():
 
 # ─────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host="0.0.0.0", port=port)
