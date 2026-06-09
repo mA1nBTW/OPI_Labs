@@ -97,7 +97,7 @@ class GardenService:
         Розраховує стан здоров'я рослини.
 
         Алгоритм:
-          base_health  = min(growth_level * 10, 100)
+          base_health  = 100
           penalty      = days_overdue * 15
           health_pct   = max(0, base_health - penalty)
 
@@ -133,7 +133,7 @@ class GardenService:
         days_overdue = max(0, days_since - reminder_frequency_days)
 
         # --- Розрахунок здоров'я ---
-        base_health = min(growth_level * 10, 100)
+        base_health = 100
         penalty = days_overdue * 15
         health_pct = max(0, base_health - penalty)
 

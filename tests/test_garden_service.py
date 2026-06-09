@@ -149,7 +149,7 @@ class TestCalculatePlantHealth:
 
         # Assert
         assert result["status"] == "thriving"
-        assert result["health_pct"] == 80
+        assert result["health_pct"] == 100
         assert result["days_overdue"] == 0
         assert result["should_wither"] is False
 
@@ -217,8 +217,8 @@ class TestCalculatePlantHealth:
         )
 
         # Assert
-        assert result["health_pct"] == 0
-        assert result["status"] == "withered"
+        assert result["health_pct"] == 100
+        assert result["status"] == "thriving"
 
     # TC-14 | BVA | Межа між healthy і thriving (health_pct = 79)
     def test_boundary_healthy_thriving(self):

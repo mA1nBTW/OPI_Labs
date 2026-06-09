@@ -91,7 +91,7 @@ function getPlantStatus(growthLevel, lastWatering, frequencyDays) {
   const daysSince = Math.floor((now - last) / 86400000);
   const daysOverdue = Math.max(0, daysSince - (frequencyDays || 7));
 
-  const baseHealth = Math.min(growthLevel * 10, 100);
+  const baseHealth = 100;
   const penalty = daysOverdue * 15;
   const healthPct = Math.max(0, baseHealth - penalty);
 
