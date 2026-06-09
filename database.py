@@ -4,7 +4,17 @@ import os
 from datetime import datetime
 
 # 1. Hardcoded Configuration: Використання os.getenv замість Magic String
-DEFAULT_DB_PATH = os.getenv("DB_PATH", "garden.db")
+# HF Spaces: /data зберігається між перезапусками контейнера
+def _resolve_db_path() -> str:
+    explicit = os.getenv("DB_PATH")
+    if explicit:
+        return explicit
+    # HF Spaces persistent storage
+    if os.path.isdir("/data"):
+        return "/data/garden.db"
+    return "garden.db"
+
+DEFAULT_DB_PATH = _resolve_db_path()
 
 class LocalDatabase:
     """Обгортка над SQLite для проєкту Garden з потокобезпечними з'єднаннями."""
@@ -65,6 +75,7 @@ class LocalDatabase:
                     plant_id TEXT PRIMARY KEY,
                     contact_id TEXT UNIQUE,
                     growth_level INTEGER DEFAULT 1,
+                    last_watering DATETIME,
                     FOREIGN KEY(contact_id) REFERENCES contacts(contact_id) ON DELETE CASCADE
                 );
                 
@@ -175,8 +186,8 @@ class LocalDatabase:
         """
         with self.conn:
             self.conn.execute(
-                "INSERT INTO plants (plant_id, contact_id, growth_level) VALUES (?, ?, ?)",
-                (plant.plant_id, plant.contact_id, plant.growth_level)
+                "INSERT INTO plants (plant_id, contact_id, growth_level, last_watering) VALUES (?, ?, ?, ?)",
+                (plant.plant_id, plant.contact_id, plant.growth_level, datetime.now().isoformat())
             )
 
     def get_all_plants(self, user_id: str) -> list:
@@ -213,8 +224,8 @@ class LocalDatabase:
         """
         with self.conn:
             self.conn.execute(
-                "UPDATE plants SET growth_level = ? WHERE plant_id = ?",
-                (plant.growth_level, plant.plant_id)
+                "UPDATE plants SET growth_level = ?, last_watering = ? WHERE plant_id = ?",
+                (plant.growth_level, datetime.now().isoformat(), plant.plant_id)
             )
 
     def add_interaction(self, contact_id: str, media_path: str = None) -> None:
