@@ -586,6 +586,17 @@ async function loadChatContacts() {
   }
 }
 
+function closeChat() {
+  state.activeChatContact = null;
+  const chatView = $('#view-chat');
+  chatView.innerHTML = `
+    <h1 class="section-title"><span class="emoji">💬</span> Чат</h1>
+    <p class="section-subtitle">Оберіть контакт для листування</p>
+    <div class="contact-list" id="chat-contacts-list"></div>
+  `;
+  switchView('chat');
+}
+
 async function openChat(contactId) {
   const contact = state.contacts.find(c => c.contact_id === contactId);
   if (!contact) {
@@ -609,7 +620,7 @@ async function openChat(contactId) {
   chatView.innerHTML = `
     <div class="chat-container">
       <div class="chat-header">
-        <button class="chat-header__back" onclick="switchView('chat')" title="Назад">⬅</button>
+        <button class="chat-header__back" onclick="closeChat()" title="Назад">⬅</button>
         <div class="contact-avatar" style="width:36px;height:36px;font-size:1.1rem">${getContactEmoji(c.name)}</div>
         <div>
           <div class="chat-header__name">${c.name}</div>
