@@ -26,7 +26,12 @@ async function api(url, opts = {}) {
     headers: { 'Content-Type': 'application/json', ...opts.headers },
     ...opts,
   });
-  const data = await res.json();
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    throw new Error('Сервер повернув некоректну відповідь');
+  }
   if (!res.ok) throw new Error(data.error || 'Щось пішло не так');
   return data;
 }
