@@ -1,6 +1,7 @@
 import sqlite3
 import threading
 import os
+from datetime import datetime
 
 # 1. Hardcoded Configuration: Використання os.getenv замість Magic String
 DEFAULT_DB_PATH = os.getenv("DB_PATH", "garden.db")
@@ -225,8 +226,8 @@ class LocalDatabase:
         """
         with self.conn:
             self.conn.execute(
-                "INSERT INTO interactions (contact_id, media_path) VALUES (?, ?)",
-                (contact_id, media_path)
+                "INSERT INTO interactions (contact_id, media_path, timestamp) VALUES (?, ?, ?)",
+                (contact_id, media_path, datetime.now().isoformat())
             )
 
     def get_interactions(self, contact_id: str) -> list:
@@ -253,8 +254,8 @@ class LocalDatabase:
         """
         with self.conn:
             cur = self.conn.execute(
-                "INSERT INTO messages (contact_id, sender, content) VALUES (?, ?, ?)",
-                (contact_id, sender, content)
+                "INSERT INTO messages (contact_id, sender, content, timestamp) VALUES (?, ?, ?, ?)",
+                (contact_id, sender, content, datetime.now().isoformat())
             )
             msg_id = cur.lastrowid
             
