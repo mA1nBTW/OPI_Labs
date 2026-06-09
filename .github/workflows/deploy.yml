@@ -1,4 +1,4 @@
-name: Deploy to Heroku
+name: Sync to Hugging Face Spaces
 
 on:
   push:
@@ -26,10 +26,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v3.13.15
         with:
-          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
-          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
-          heroku_email: ${{ secrets.HEROKU_EMAIL }}
+          fetch-depth: 0
+
+      - name: Push to Hugging Face Spaces
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::Не знайдено секрет HF_TOKEN! Будь ласка, додайте токен від Hugging Face в Settings -> Secrets and variables -> Actions"
+            exit 1
+          fi
+          git config --global user.email "bot@huggingface.co"
+          git config --global user.name "Hugging Face Deploy Bot"
+          git remote add space https://kompotisk:$HF_TOKEN@huggingface.co/spaces/kompotisk/Garden
+          git push --force space main
